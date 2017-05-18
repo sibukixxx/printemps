@@ -1,0 +1,85 @@
+#!/bin/sh
+usage(){
+    cat <<EOF
+Add the dependency of crate to Cargo.toml
+
+Usage:
+    cargo use <crate> [version]
+    cargo use -h | --help
+
+Description:
+    Add the dependency of crate to Cargo.toml.
+    If vension is omitted, adopt the latest version.
+
+EOF
+}
+
+version(){
+    cargo search "$1" | grep -Eo "^$1 \(.*?\)" | sed "s/^$1 (\(.*\))/\1/"
+}
+
+find_cargo(){
+    # TODO: look up parent directories
+    ls | grep '^Cargo.toml$'
+}
+
+ensure_dep_exists(){
+    cargo="$1"
+    if ! grep -F '[dependencies]' "$cargo" > /dev/null 2>&1; then
+        echo '[dependencies]' >> "$cargo"
+    fi
+}
+
+insert_dep(){
+    cargo="$1"
+    crate="$2"
+    version="$3"
+    # FIXME: Because Linux and Mac behaves defferently on null string argument, don't use it and adopt workaround.
+    sed -i'' "/\[dependencies\]/{a\
+$crate = \"$version\"
+}" "$cargo"
+}
+
+run(){
+    CARGO_TOML="$(find_cargo)"
+    if [ $? != 0 ]
+    then
+        echo "Cargo.toml not found" 1>&2
+        exit 1
+    fi
+
+    if [ -z "$1" ]; then
+        usage
+        exit 1
+    else
+        CRATE="$1"
+    fi
+
+    if [ -z "$2" ]; then
+        VERSION="$(version $1)"
+    else
+        VERSION="$2"
+    fi
+
+    ensure_dep_exists "$CARGO_TOML"
+    insert_dep "$CARGO_TOML" "$CRATE" "$VERSION"    
+}
+
+main(){
+    # $1 is "use" when called as a cargo plugin
+    if [ "$1" != use ]; then
+        echo "Use this as a cargo plugin"
+        usage
+        exit 1
+    fi
+    shift
+    if [ "$1" = -h ] || [ "$1" = --help ]; then
+        usage
+        exit
+    else
+        run "$@"
+    fi
+}
+
+
+main "$@"

@@ -1,0 +1,9 @@
+[package]
+name = "analysis"
+version = "0.1.0"
+authors = ["sibukixxx <sibukixxx@gmail.com>"]
+
+[dependencies]
+csv = "0.15.0"
+nalgebra = "0.3.1"
+gnuplot = "0.0.22"
